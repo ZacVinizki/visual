@@ -7,11 +7,7 @@ import re
 import streamlit.components.v1 as components
 
 # Get API key from secrets
-try:
-    OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-except KeyError:
-    st.error("❌ OpenAI API key not found in secrets. Please configure it in your Streamlit app settings.")
-    st.stop()
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 
 # Set page config
 st.set_page_config(
