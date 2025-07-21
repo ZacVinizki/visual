@@ -5,6 +5,8 @@ import tempfile
 import webbrowser
 import json
 import re
+import streamlit.components.v1 as components
+import base64
 
 # Get API key from secrets (your working setup)
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
@@ -123,14 +125,41 @@ def launch_space_visualization(sections: list, company_name: str = "INVESTMENT")
     # Create the HTML content for the brain visualization
     html_content = create_space_visualization_html(sections, company_name)
     
-    # Write to a temporary HTML file
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
-        f.write(html_content)
-        temp_file = f.name
+    # Encode the HTML content for JavaScript
+    html_bytes = html_content.encode('utf-8')
+    html_b64 = base64.b64encode(html_bytes).decode('utf-8')
     
-    # Open in browser
-    webbrowser.open('file://' + temp_file)
-    st.success("🧠 **Brain visualization launched!** Check your browser for the professional investment analysis.")
+    # Create HTML with auto-popup JavaScript
+    popup_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Opening Brain Visualization...</title>
+    </head>
+    <body>
+        <p style="text-align: center; font-family: Arial; color: #666;">Opening brain visualization...</p>
+        <script>
+            try {{
+                const htmlContent = atob('{html_b64}');
+                const newWindow = window.open('', '_blank', 'width=1400,height=900,scrollbars=yes');
+                if (newWindow) {{
+                    newWindow.document.write(htmlContent);
+                    newWindow.document.close();
+                }} else {{
+                    alert('Please allow popups for this site to view the brain visualization');
+                }}
+            }} catch(e) {{
+                console.error('Error opening visualization:', e);
+            }}
+        </script>
+    </body>
+    </html>
+    """
+    
+    # Use components.html to trigger the popup
+    components.html(popup_html, height=100)
+    
+    st.success("🧠 **Brain visualization opening in new window!** (Allow popups if prompted)")
 
 def create_space_visualization_html(sections: list, company_name: str = "INVESTMENT") -> str:
     """
