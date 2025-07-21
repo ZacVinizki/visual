@@ -30,7 +30,21 @@ def format_thesis_with_headers(text: str) -> str:
         return text
     
     try:
-        client = OpenAI(api_key=OPENAI_API_KEY)
+        # Try modern OpenAI client initialization
+        try:
+            # Try modern OpenAI client initialization
+            try:
+                client = OpenAI(api_key=OPENAI_API_KEY)
+            except Exception as client_error:
+                # Fallback for older versions
+                import openai
+                openai.api_key = OPENAI_API_KEY
+                client = openai
+        except Exception as client_error:
+            # Fallback for older versions or environment issues
+            import openai
+            openai.api_key = OPENAI_API_KEY
+            client = openai
         
         prompt = f"""
         Please analyze this investment thesis and break it into 4-6 major sections with natural, flowing headers.
@@ -51,18 +65,38 @@ def format_thesis_with_headers(text: str) -> str:
         {text}
         """
         
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.1,
-            max_tokens=2000
-        )
-        
-        return response.choices[0].message.content
+        # Try modern API call format first
+        try:
+            if hasattr(client, 'chat') and hasattr(client.chat, 'completions'):
+                response = client.chat.completions.create(
+                    model="gpt-4",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.1,
+                    max_tokens=2000
+                )
+                return response.choices[0].message.content
+            else:
+                # Fallback to older API format
+                response = openai.ChatCompletion.create(
+                    model="gpt-4",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.1,
+                    max_tokens=2000
+                )
+                return response.choices[0].message.content
+        except Exception as api_error:
+            # If all else fails, try the very basic format
+            response = openai.Completion.create(
+                model="gpt-3.5-turbo-instruct",
+                prompt=f"Reformat this investment thesis with clear section headers:\n\n{text}",
+                temperature=0.1,
+                max_tokens=2000
+            )
+            return response.choices[0].text
         
     except Exception as e:
         st.error(f"Error formatting thesis: {str(e)}")
-        st.error("💡 **Tip:** Make sure your OpenAI API key is valid and has sufficient credits.")
+        st.error("💡 **Tip:** There may be a version compatibility issue. The app will continue without AI formatting.")
         return text
 
 def extract_company_name(raw_text: str) -> str:
@@ -214,15 +248,29 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
             Activists pushing for strategic alternatives
             """
             
-            response = client.chat.completions.create(
-                model="gpt-4",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,
-                max_tokens=150,
-                timeout=10
-            )
-            
-            result = response.choices[0].message.content.strip()
+            # Try modern API call format first
+            try:
+                if hasattr(client, 'chat') and hasattr(client.chat, 'completions'):
+                    response = client.chat.completions.create(
+                        model="gpt-4",
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=0.1,
+                        max_tokens=150,
+                        timeout=10
+                    )
+                    result = response.choices[0].message.content.strip()
+                else:
+                    # Fallback to older API format
+                    import openai
+                    response = openai.ChatCompletion.create(
+                        model="gpt-4",
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=0.1,
+                        max_tokens=150
+                    )
+                    result = response.choices[0].message.content.strip()
+            except Exception as api_error:
+                raise Exception(f"API call failed: {str(api_error)}")
             
             if not result:
                 raise Exception("Empty response from AI")
