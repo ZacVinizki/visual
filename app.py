@@ -7,7 +7,10 @@ import json
 import re
 
 # Add your OpenAI API key here
-OPENAI_API_KEY = st.secrets.get("OPENAI_API_KEY", "your-api-key-here")
+try:
+    OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+except:
+    OPENAI_API_KEY = "your-api-key-here"  # Replace with your actual API key
 
 # Set page config
 st.set_page_config(
@@ -21,28 +24,33 @@ def format_thesis_with_headers(text: str) -> str:
     """
     Use AI to reformat thesis text with proper section headers and colons
     """
-    client = OpenAI(api_key=OPENAI_API_KEY)
-    
-    prompt = f"""
-    Please analyze this investment thesis and break it into 4-6 major sections with natural, flowing headers.
-    
-    Your job is to:
-    1. Read through the text and identify the 4-6 MAJOR themes/topics (don't over-segment)
-    2. Group related content together - combine smaller related points into substantial sections
-    3. Create section headers that sound natural and professional - like how an investment analyst would organize major talking points
-    4. Each section should have enough content to discuss for 30-60 seconds in a video presentation
-    5. Headers should be concise but descriptive using investment language (e.g., "Activist Momentum", "Financial Position", "M&A Catalysts")
-    6. Put each header on its own line followed by a colon, then a blank line
-    7. Add blank lines between sections for clear separation
-    8. Keep all original content but consolidate under fewer, more substantial headers
-    
-    Think like organizing major talking points for a 5-minute investment pitch - you want substantial sections, not tiny fragments.
-    
-    Original text:
-    {text}
-    """
+    # Check if API key is valid
+    if not OPENAI_API_KEY or OPENAI_API_KEY == "your-api-key-here":
+        st.error("❌ **OpenAI API key not configured.** Please add your API key to Streamlit secrets or update the code.")
+        return text
     
     try:
+        client = OpenAI(api_key=OPENAI_API_KEY)
+        
+        prompt = f"""
+        Please analyze this investment thesis and break it into 4-6 major sections with natural, flowing headers.
+        
+        Your job is to:
+        1. Read through the text and identify the 4-6 MAJOR themes/topics (don't over-segment)
+        2. Group related content together - combine smaller related points into substantial sections
+        3. Create section headers that sound natural and professional - like how an investment analyst would organize major talking points
+        4. Each section should have enough content to discuss for 30-60 seconds in a video presentation
+        5. Headers should be concise but descriptive using investment language (e.g., "Activist Momentum", "Financial Position", "M&A Catalysts")
+        6. Put each header on its own line followed by a colon, then a blank line
+        7. Add blank lines between sections for clear separation
+        8. Keep all original content but consolidate under fewer, more substantial headers
+        
+        Think like organizing major talking points for a 5-minute investment pitch - you want substantial sections, not tiny fragments.
+        
+        Original text:
+        {text}
+        """
+        
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
@@ -54,6 +62,7 @@ def format_thesis_with_headers(text: str) -> str:
         
     except Exception as e:
         st.error(f"Error formatting thesis: {str(e)}")
+        st.error("💡 **Tip:** Make sure your OpenAI API key is valid and has sufficient credits.")
         return text
 
 def extract_company_name(raw_text: str) -> str:
@@ -172,6 +181,11 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
     # Create concise summaries for each section using AI
     def create_bullet_points(title, content):
         """Use AI to extract 3 key bullet points from content"""
+        # Check if API key is valid
+        if not OPENAI_API_KEY or OPENAI_API_KEY == "your-api-key-here":
+            # Fallback to content extraction without AI
+            return extract_bullets_from_content(title, content)
+        
         try:
             client = OpenAI(api_key=OPENAI_API_KEY)
             
@@ -228,24 +242,9 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
                 if not is_generic and len(bullet.split()) >= 3:
                     filtered_bullets.append(bullet)
             
-            # If we don't have enough good bullets, try a simpler approach
+            # If we don't have enough good bullets, use fallback
             if len(filtered_bullets) < 2:
-                # Extract key phrases from the content directly
-                sentences = content.replace('\n', '. ').split('.')
-                extracted_bullets = []
-                
-                for sentence in sentences[:10]:  # Look at first 10 sentences
-                    sentence = sentence.strip()
-                    if len(sentence.split()) >= 5 and len(sentence.split()) <= 12:
-                        # Look for sentences with investment-relevant keywords
-                        keywords = ['CEO', 'stock', 'price', 'margin', 'revenue', 'activist', 'M&A', 'sale', 'acquisition', 'value', 'growth', 'decline']
-                        if any(keyword.lower() in sentence.lower() for keyword in keywords):
-                            extracted_bullets.append(sentence)
-                            if len(extracted_bullets) >= 3:
-                                break
-                
-                if extracted_bullets:
-                    return extracted_bullets[:3]
+                return extract_bullets_from_content(title, content)
             
             # Ensure we have exactly 3 bullets
             while len(filtered_bullets) < 3:
@@ -264,28 +263,30 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
             
         except Exception as e:
             print(f"AI bullet generation failed for {title}: {str(e)}")
+            return extract_bullets_from_content(title, content)
+    
+    def extract_bullets_from_content(title, content):
+        """Fallback function to extract bullets from content without AI"""
+        if content:
+            sentences = content.replace('\n', '. ').split('.')
+            fallback_bullets = []
             
-            # Better fallback - extract from actual content
-            if content:
-                sentences = content.replace('\n', '. ').split('.')
-                fallback_bullets = []
-                
-                for sentence in sentences:
-                    sentence = sentence.strip()
-                    if sentence and len(sentence.split()) >= 4 and len(sentence.split()) <= 10:
-                        fallback_bullets.append(sentence)
-                        if len(fallback_bullets) >= 3:
-                            break
-                
-                if fallback_bullets:
-                    return fallback_bullets[:3]
+            for sentence in sentences:
+                sentence = sentence.strip()
+                if sentence and len(sentence.split()) >= 4 and len(sentence.split()) <= 10:
+                    fallback_bullets.append(sentence)
+                    if len(fallback_bullets) >= 3:
+                        break
             
-            # Last resort fallback
-            return [
-                f"{title} presents opportunity",
-                f"Key metrics show potential",
-                f"Investment thesis under review"
-            ]
+            if fallback_bullets:
+                return fallback_bullets[:3]
+        
+        # Last resort fallback
+        return [
+            f"{title} presents opportunity",
+            f"Key metrics show potential", 
+            f"Investment thesis under review"
+        ]
     
     # Process sections for concise display
     processed_sections = []
@@ -926,6 +927,14 @@ def main():
     
     st.title("📊 Investment Thesis Formatter")
     st.markdown("Transform your thesis into organized sections with clear headers")
+    
+    # API Key status
+    if not OPENAI_API_KEY or OPENAI_API_KEY == "your-api-key-here":
+        st.warning("⚠️ **OpenAI API key not configured.** The app will work with limited functionality (no AI formatting/bullets).")
+        st.info("💡 **To enable full AI features:** Add your OpenAI API key to Streamlit secrets or update the code.")
+    else:
+        st.success("✅ **OpenAI API key configured** - Full AI features enabled!")
+    
     st.markdown("---")
     
     # Text input
