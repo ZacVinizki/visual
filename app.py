@@ -6,12 +6,8 @@ import webbrowser
 import json
 import re
 
-# Get API key from Streamlit secrets
-try:
-    OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-except:
-    st.error("❌ **OpenAI API key not found in secrets.** Please add OPENAI_API_KEY to your Streamlit secrets.")
-    st.stop()
+# Add your OpenAI API key here
+OPENAI_API_KEY = "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"  # Replace with your actual API key
 
 # Set page config
 st.set_page_config(
@@ -25,28 +21,28 @@ def format_thesis_with_headers(text: str) -> str:
     """
     Use AI to reformat thesis text with proper section headers and colons
     """
+    client = OpenAI(api_key=OPENAI_API_KEY)
+    
+    prompt = f"""
+    Please analyze this investment thesis and break it into 4-6 major sections with natural, flowing headers.
+    
+    Your job is to:
+    1. Read through the text and identify the 4-6 MAJOR themes/topics (don't over-segment)
+    2. Group related content together - combine smaller related points into substantial sections
+    3. Create section headers that sound natural and professional - like how an investment analyst would organize major talking points
+    4. Each section should have enough content to discuss for 30-60 seconds in a video presentation
+    5. Headers should be concise but descriptive using investment language (e.g., "Activist Momentum", "Financial Position", "M&A Catalysts")
+    6. Put each header on its own line followed by a colon, then a blank line
+    7. Add blank lines between sections for clear separation
+    8. Keep all original content but consolidate under fewer, more substantial headers
+    
+    Think like organizing major talking points for a 5-minute investment pitch - you want substantial sections, not tiny fragments.
+    
+    Original text:
+    {text}
+    """
+    
     try:
-        client = OpenAI(api_key=OPENAI_API_KEY)
-        
-        prompt = f"""
-        Please analyze this investment thesis and break it into 4-6 major sections with natural, flowing headers.
-        
-        Your job is to:
-        1. Read through the text and identify the 4-6 MAJOR themes/topics (don't over-segment)
-        2. Group related content together - combine smaller related points into substantial sections
-        3. Create section headers that sound natural and professional - like how an investment analyst would organize major talking points
-        4. Each section should have enough content to discuss for 30-60 seconds in a video presentation
-        5. Headers should be concise but descriptive using investment language (e.g., "Activist Momentum", "Financial Position", "M&A Catalysts")
-        6. Put each header on its own line followed by a colon, then a blank line
-        7. Add blank lines between sections for clear separation
-        8. Keep all original content but consolidate under fewer, more substantial headers
-        
-        Think like organizing major talking points for a 5-minute investment pitch - you want substantial sections, not tiny fragments.
-        
-        Original text:
-        {text}
-        """
-        
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
@@ -58,7 +54,6 @@ def format_thesis_with_headers(text: str) -> str:
         
     except Exception as e:
         st.error(f"Error formatting thesis: {str(e)}")
-        st.info("💡 **The app will continue without AI formatting.** You can still use the brain visualization with your current text.")
         return text
 
 def extract_company_name(raw_text: str) -> str:
@@ -90,6 +85,36 @@ def extract_company_name(raw_text: str) -> str:
         return "INVESTMENT"
 
 def parse_thesis_sections(formatted_text: str) -> list:
+    """
+    Parse the formatted thesis text into sections for visualization
+    """
+    sections = []
+    lines = formatted_text.split('\n')
+    current_section = None
+    current_content = []
+    
+    for line in lines:
+        line = line.strip()
+        if line.endswith(':') and line and not line.startswith(' '):
+            # This is a section header
+            if current_section:
+                sections.append({
+                    'title': current_section,
+                    'content': '\n'.join(current_content).strip()
+                })
+            current_section = line[:-1]  # Remove the colon
+            current_content = []
+        elif line:
+            current_content.append(line)
+    
+    # Add the last section
+    if current_section:
+        sections.append({
+            'title': current_section,
+            'content': '\n'.join(current_content).strip()
+        })
+    
+    return sections
     """
     Parse the formatted thesis text into sections for visualization
     """
@@ -179,7 +204,8 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
                 model="gpt-4",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,
-                max_tokens=150
+                max_tokens=150,
+                timeout=10
             )
             
             result = response.choices[0].message.content.strip()
@@ -202,9 +228,24 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
                 if not is_generic and len(bullet.split()) >= 3:
                     filtered_bullets.append(bullet)
             
-            # If we don't have enough good bullets, use fallback
+            # If we don't have enough good bullets, try a simpler approach
             if len(filtered_bullets) < 2:
-                return extract_bullets_from_content(title, content)
+                # Extract key phrases from the content directly
+                sentences = content.replace('\n', '. ').split('.')
+                extracted_bullets = []
+                
+                for sentence in sentences[:10]:  # Look at first 10 sentences
+                    sentence = sentence.strip()
+                    if len(sentence.split()) >= 5 and len(sentence.split()) <= 12:
+                        # Look for sentences with investment-relevant keywords
+                        keywords = ['CEO', 'stock', 'price', 'margin', 'revenue', 'activist', 'M&A', 'sale', 'acquisition', 'value', 'growth', 'decline']
+                        if any(keyword.lower() in sentence.lower() for keyword in keywords):
+                            extracted_bullets.append(sentence)
+                            if len(extracted_bullets) >= 3:
+                                break
+                
+                if extracted_bullets:
+                    return extracted_bullets[:3]
             
             # Ensure we have exactly 3 bullets
             while len(filtered_bullets) < 3:
@@ -222,30 +263,29 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
             return filtered_bullets[:3]
             
         except Exception as e:
-            return extract_bullets_from_content(title, content)
-    
-    def extract_bullets_from_content(title, content):
-        """Fallback function to extract bullets from content without AI"""
-        if content:
-            sentences = content.replace('\n', '. ').split('.')
-            fallback_bullets = []
+            print(f"AI bullet generation failed for {title}: {str(e)}")
             
-            for sentence in sentences:
-                sentence = sentence.strip()
-                if sentence and len(sentence.split()) >= 4 and len(sentence.split()) <= 10:
-                    fallback_bullets.append(sentence)
-                    if len(fallback_bullets) >= 3:
-                        break
+            # Better fallback - extract from actual content
+            if content:
+                sentences = content.replace('\n', '. ').split('.')
+                fallback_bullets = []
+                
+                for sentence in sentences:
+                    sentence = sentence.strip()
+                    if sentence and len(sentence.split()) >= 4 and len(sentence.split()) <= 10:
+                        fallback_bullets.append(sentence)
+                        if len(fallback_bullets) >= 3:
+                            break
+                
+                if fallback_bullets:
+                    return fallback_bullets[:3]
             
-            if fallback_bullets:
-                return fallback_bullets[:3]
-        
-        # Last resort fallback
-        return [
-            f"{title} presents opportunity",
-            f"Key metrics show potential", 
-            f"Investment thesis under review"
-        ]
+            # Last resort fallback
+            return [
+                f"{title} presents opportunity",
+                f"Key metrics show potential",
+                f"Investment thesis under review"
+            ]
     
     # Process sections for concise display
     processed_sections = []
@@ -886,7 +926,6 @@ def main():
     
     st.title("📊 Investment Thesis Formatter")
     st.markdown("Transform your thesis into organized sections with clear headers")
-    st.success("✅ **OpenAI API key configured** - Full AI features enabled!")
     st.markdown("---")
     
     # Text input
