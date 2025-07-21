@@ -127,6 +127,19 @@ def launch_space_visualization(sections: list, company_name: str = "INVESTMENT")
     # Show directly in Streamlit at full screen size
     st.markdown("---")
     
+    # CSS to make the component full width
+    st.markdown("""
+    <style>
+    .element-container:has(iframe[title="components.html"]) {
+        width: 100vw !important;
+        margin-left: calc(-50vw + 50%) !important;
+    }
+    iframe[title="components.html"] {
+        width: 100% !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     # Display the visualization at full screen size
     components.html(html_content, height=900, scrolling=False)
 
