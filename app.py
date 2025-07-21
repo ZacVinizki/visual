@@ -125,9 +125,8 @@ def launch_space_visualization(sections: list, company_name: str = "INVESTMENT")
     # Create the HTML content for the brain visualization
     html_content = create_space_visualization_html(sections, company_name)
     
-    # Encode the HTML content for JavaScript
-    html_bytes = html_content.encode('utf-8')
-    html_b64 = base64.b64encode(html_bytes).decode('utf-8')
+    # Escape the HTML content properly for JavaScript
+    escaped_html = html_content.replace('\\', '\\\\').replace('`', '\\`').replace('${', '\\${').replace('"', '\\"')
     
     # Create HTML with auto-popup JavaScript
     popup_html = f"""
@@ -135,12 +134,13 @@ def launch_space_visualization(sections: list, company_name: str = "INVESTMENT")
     <html>
     <head>
         <title>Opening Brain Visualization...</title>
+        <meta charset="UTF-8">
     </head>
     <body>
         <p style="text-align: center; font-family: Arial; color: #666;">Opening brain visualization...</p>
         <script>
             try {{
-                const htmlContent = atob('{html_b64}');
+                const htmlContent = `{escaped_html}`;
                 const newWindow = window.open('', '_blank', 'width=1400,height=900,scrollbars=yes');
                 if (newWindow) {{
                     newWindow.document.write(htmlContent);
