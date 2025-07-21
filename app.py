@@ -522,7 +522,9 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
         <div id="subtitle">Investment Thesis Overview</div>
         
         <div id="brain-container">
-            <div id="brain"></div>
+            <div id="brain">
+                <!-- Purple circle with animation, no emoji -->
+            </div>
         </div>
     </div>
     
@@ -595,27 +597,24 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
                 bullets.appendChild(li);
             });
             
-            // Position popup DIRECTLY centered above the clicked box
+            // Get exact box position
             const rect = clickedElement.getBoundingClientRect();
             const popupWidth = 450;
             const popupHeight = 300;
             
-            // Center horizontally on the box
+            // Position popup EXACTLY centered horizontally on the box
             let left = rect.left + (rect.width / 2) - (popupWidth / 2);
-            // Position directly above the box with small gap
-            let top = rect.top - popupHeight - 15;
+            // Position EXACTLY above the box with minimal gap
+            let top = rect.top - popupHeight - 10;
             
-            // Keep popup on screen horizontally
-            if (left < 20) left = 20;
-            if (left + popupWidth > window.innerWidth - 20) left = window.innerWidth - popupWidth - 20;
-            
-            // If popup would go off top of screen, put it below the box instead
-            if (top < 20) {
-                top = rect.bottom + 15;
-            }
+            // Boundary checks
+            if (left < 10) left = 10;
+            if (left + popupWidth > window.innerWidth - 10) left = window.innerWidth - popupWidth - 10;
+            if (top < 10) top = rect.bottom + 10;
             
             popup.style.left = left + 'px';
             popup.style.top = top + 'px';
+            popup.style.position = 'fixed';
             
             // Show popup and blur
             blurOverlay.classList.add('active');
