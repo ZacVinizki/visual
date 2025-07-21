@@ -6,11 +6,12 @@ import webbrowser
 import json
 import re
 
-# Add your OpenAI API key here
+# Get API key from Streamlit secrets
 try:
     OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 except:
-    OPENAI_API_KEY = "your-api-key-here"  # Replace with your actual API key
+    st.error("❌ **OpenAI API key not found in secrets.** Please add OPENAI_API_KEY to your Streamlit secrets.")
+    st.stop()
 
 # Set page config
 st.set_page_config(
@@ -24,27 +25,8 @@ def format_thesis_with_headers(text: str) -> str:
     """
     Use AI to reformat thesis text with proper section headers and colons
     """
-    # Check if API key is valid
-    if not OPENAI_API_KEY or OPENAI_API_KEY == "your-api-key-here":
-        st.error("❌ **OpenAI API key not configured.** Please add your API key to Streamlit secrets or update the code.")
-        return text
-    
     try:
-        # Try modern OpenAI client initialization
-        try:
-            # Try modern OpenAI client initialization
-            try:
-                client = OpenAI(api_key=OPENAI_API_KEY)
-            except Exception as client_error:
-                # Fallback for older versions
-                import openai
-                openai.api_key = OPENAI_API_KEY
-                client = openai
-        except Exception as client_error:
-            # Fallback for older versions or environment issues
-            import openai
-            openai.api_key = OPENAI_API_KEY
-            client = openai
+        client = OpenAI(api_key=OPENAI_API_KEY)
         
         prompt = f"""
         Please analyze this investment thesis and break it into 4-6 major sections with natural, flowing headers.
@@ -65,38 +47,18 @@ def format_thesis_with_headers(text: str) -> str:
         {text}
         """
         
-        # Try modern API call format first
-        try:
-            if hasattr(client, 'chat') and hasattr(client.chat, 'completions'):
-                response = client.chat.completions.create(
-                    model="gpt-4",
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.1,
-                    max_tokens=2000
-                )
-                return response.choices[0].message.content
-            else:
-                # Fallback to older API format
-                response = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.1,
-                    max_tokens=2000
-                )
-                return response.choices[0].message.content
-        except Exception as api_error:
-            # If all else fails, try the very basic format
-            response = openai.Completion.create(
-                model="gpt-3.5-turbo-instruct",
-                prompt=f"Reformat this investment thesis with clear section headers:\n\n{text}",
-                temperature=0.1,
-                max_tokens=2000
-            )
-            return response.choices[0].text
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            max_tokens=2000
+        )
+        
+        return response.choices[0].message.content
         
     except Exception as e:
         st.error(f"Error formatting thesis: {str(e)}")
-        st.error("💡 **Tip:** There may be a version compatibility issue. The app will continue without AI formatting.")
+        st.info("💡 **The app will continue without AI formatting.** You can still use the brain visualization with your current text.")
         return text
 
 def extract_company_name(raw_text: str) -> str:
@@ -158,36 +120,6 @@ def parse_thesis_sections(formatted_text: str) -> list:
         })
     
     return sections
-    """
-    Parse the formatted thesis text into sections for visualization
-    """
-    sections = []
-    lines = formatted_text.split('\n')
-    current_section = None
-    current_content = []
-    
-    for line in lines:
-        line = line.strip()
-        if line.endswith(':') and line and not line.startswith(' '):
-            # This is a section header
-            if current_section:
-                sections.append({
-                    'title': current_section,
-                    'content': '\n'.join(current_content).strip()
-                })
-            current_section = line[:-1]  # Remove the colon
-            current_content = []
-        elif line:
-            current_content.append(line)
-    
-    # Add the last section
-    if current_section:
-        sections.append({
-            'title': current_section,
-            'content': '\n'.join(current_content).strip()
-        })
-    
-    return sections
 
 def launch_space_visualization(sections: list, company_name: str = "INVESTMENT"):
     """
@@ -215,11 +147,6 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
     # Create concise summaries for each section using AI
     def create_bullet_points(title, content):
         """Use AI to extract 3 key bullet points from content"""
-        # Check if API key is valid
-        if not OPENAI_API_KEY or OPENAI_API_KEY == "your-api-key-here":
-            # Fallback to content extraction without AI
-            return extract_bullets_from_content(title, content)
-        
         try:
             client = OpenAI(api_key=OPENAI_API_KEY)
             
@@ -248,29 +175,14 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
             Activists pushing for strategic alternatives
             """
             
-            # Try modern API call format first
-            try:
-                if hasattr(client, 'chat') and hasattr(client.chat, 'completions'):
-                    response = client.chat.completions.create(
-                        model="gpt-4",
-                        messages=[{"role": "user", "content": prompt}],
-                        temperature=0.1,
-                        max_tokens=150,
-                        timeout=10
-                    )
-                    result = response.choices[0].message.content.strip()
-                else:
-                    # Fallback to older API format
-                    import openai
-                    response = openai.ChatCompletion.create(
-                        model="gpt-4",
-                        messages=[{"role": "user", "content": prompt}],
-                        temperature=0.1,
-                        max_tokens=150
-                    )
-                    result = response.choices[0].message.content.strip()
-            except Exception as api_error:
-                raise Exception(f"API call failed: {str(api_error)}")
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,
+                max_tokens=150
+            )
+            
+            result = response.choices[0].message.content.strip()
             
             if not result:
                 raise Exception("Empty response from AI")
@@ -310,7 +222,6 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
             return filtered_bullets[:3]
             
         except Exception as e:
-            print(f"AI bullet generation failed for {title}: {str(e)}")
             return extract_bullets_from_content(title, content)
     
     def extract_bullets_from_content(title, content):
@@ -975,14 +886,7 @@ def main():
     
     st.title("📊 Investment Thesis Formatter")
     st.markdown("Transform your thesis into organized sections with clear headers")
-    
-    # API Key status
-    if not OPENAI_API_KEY or OPENAI_API_KEY == "your-api-key-here":
-        st.warning("⚠️ **OpenAI API key not configured.** The app will work with limited functionality (no AI formatting/bullets).")
-        st.info("💡 **To enable full AI features:** Add your OpenAI API key to Streamlit secrets or update the code.")
-    else:
-        st.success("✅ **OpenAI API key configured** - Full AI features enabled!")
-    
+    st.success("✅ **OpenAI API key configured** - Full AI features enabled!")
     st.markdown("---")
     
     # Text input
