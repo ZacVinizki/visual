@@ -120,153 +120,37 @@ def parse_thesis_sections(formatted_text: str) -> list:
 
 def launch_space_visualization(sections: list, company_name: str = "INVESTMENT"):
     """
-    Create and launch the cinematic brain visualization - AGGRESSIVE POPUP APPROACH
+    Create and launch the cinematic brain visualization - SIMPLE DOWNLOAD
     """
     # Create the HTML content for the brain visualization
     html_content = create_space_visualization_html(sections, company_name)
     
-    # Escape content for JavaScript
-    escaped_html = html_content.replace('\\', '\\\\').replace('`', '\\`').replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r')
-    
-    # Create aggressive popup HTML that tries multiple methods
-    popup_html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Brain Visualization Launcher</title>
-        <meta charset="UTF-8">
-        <style>
-            body {{ 
-                font-family: Arial, sans-serif; 
-                text-align: center; 
-                padding: 20px; 
-                background: #1a1a2e;
-                color: white;
-            }}
-            .btn {{
-                background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-                color: white;
-                padding: 15px 30px;
-                border: none;
-                border-radius: 10px;
-                font-size: 18px;
-                font-weight: bold;
-                cursor: pointer;
-                margin: 10px;
-                box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
-            }}
-            .btn:hover {{
-                transform: translateY(-2px);
-            }}
-            #status {{
-                margin: 20px 0;
-                font-size: 16px;
-            }}
-        </style>
-    </head>
-    <body>
-        <h2>🧠 Brain Visualization Launcher</h2>
-        <div id="status">Click the button below to open the brain visualization</div>
-        <button class="btn" onclick="openVisualization()">🧠 Open Brain Visualization</button>
-        <button class="btn" onclick="tryFallback()" style="background: #059669;">📄 Alternative Method</button>
-        
-        <script>
-            const htmlContent = `{escaped_html}`;
-            let popupWindow = null;
-            
-            function updateStatus(message, isError = false) {{
-                const status = document.getElementById('status');
-                status.textContent = message;
-                status.style.color = isError ? '#f87171' : '#4ade80';
-            }}
-            
-            function openVisualization() {{
-                updateStatus('Opening brain visualization...');
-                
-                // Method 1: Try standard popup
-                try {{
-                    popupWindow = window.open('', 'BrainViz', 'width=1400,height=900,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no');
-                    
-                    if (popupWindow) {{
-                        popupWindow.document.write(htmlContent);
-                        popupWindow.document.close();
-                        popupWindow.focus();
-                        updateStatus('✅ Brain visualization opened successfully!');
-                        return;
-                    }}
-                }} catch(e) {{
-                    console.error('Method 1 failed:', e);
-                }}
-                
-                // Method 2: Try with different parameters
-                try {{
-                    popupWindow = window.open('about:blank', '_blank');
-                    if (popupWindow) {{
-                        popupWindow.document.write(htmlContent);
-                        popupWindow.document.close();
-                        updateStatus('✅ Brain visualization opened successfully!');
-                        return;
-                    }}
-                }} catch(e) {{
-                    console.error('Method 2 failed:', e);
-                }}
-                
-                // Method 3: Create blob URL and open
-                try {{
-                    const blob = new Blob([htmlContent], {{type: 'text/html'}});
-                    const url = URL.createObjectURL(blob);
-                    popupWindow = window.open(url, '_blank');
-                    if (popupWindow) {{
-                        updateStatus('✅ Brain visualization opened successfully!');
-                        setTimeout(() => URL.revokeObjectURL(url), 1000);
-                        return;
-                    }}
-                }} catch(e) {{
-                    console.error('Method 3 failed:', e);
-                }}
-                
-                // If all methods fail
-                updateStatus('❌ Popup blocked! Please click "Alternative Method" or allow popups for this site.', true);
-            }}
-            
-            function tryFallback() {{
-                updateStatus('Preparing download...');
-                try {{
-                    const blob = new Blob([htmlContent], {{type: 'text/html'}});
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = '{company_name}_brain_visualization.html';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                    updateStatus('✅ File downloaded! Find it in your Downloads folder and double-click to open.');
-                }} catch(e) {{
-                    updateStatus('❌ Download failed. Please contact support.', true);
-                }}
-            }}
-            
-            // Auto-try opening on load
-            setTimeout(openVisualization, 1000);
-        </script>
-    </body>
-    </html>
-    """
-    
     st.markdown("---")
+    st.markdown("### 🧠 Brain Visualization Ready!")
     
-    # Display the aggressive popup launcher
-    components.html(popup_html, height=300)
+    # Simple download button
+    st.download_button(
+        label="⬇️ Download Brain Visualization File",
+        data=html_content,
+        file_name=f"{company_name}_brain_visualization.html",
+        mime="text/html",
+        type="primary"
+    )
     
     st.markdown("""
-    **If the popup doesn't open automatically:**
-    1. Click the "🧠 Open Brain Visualization" button above
-    2. If that fails, click "📄 Alternative Method" to download
-    3. Allow popups for this site in your browser settings if needed
+    ### How to Open:
+    1. **Click the download button above**
+    2. **Go to your Downloads folder** 
+    3. **Double-click the HTML file** to open it in your browser
+    4. **Enjoy the full-screen brain visualization!**
     
-    **To allow popups:** Look for a popup blocker icon in your browser's address bar and click "Always allow"
+    *(The file will work on any computer - just double-click to open)*
     """)
+    
+    # Also provide the raw HTML for copying if needed
+    with st.expander("🔧 Advanced: Copy HTML Code"):
+        st.code(html_content, language="html")
+        st.markdown("*Copy this code and save it as a .html file if the download doesn't work*")
 
 def create_space_visualization_html(sections: list, company_name: str = "INVESTMENT") -> str:
     """
