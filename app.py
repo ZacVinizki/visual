@@ -287,7 +287,7 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
     
     processed_json = json.dumps(processed_sections)
     
-    # Create HTML template
+    # Create HTML template with Randy's modifications
     html_template = '''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -375,83 +375,16 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
             text-align: center;
         }
         
-        /* Central brain container */
-        #brain-container {
-            position: relative;
-            width: 200px;
-            height: 200px;
-            margin: 0 auto;
-        }
-        
-        #brain {
-            width: 200px;
-            height: 200px;
-            background: linear-gradient(135deg, #4f46e5, #7c3aed, #ec4899);
-            border-radius: 50%;
-            position: relative;
-            animation: brainPulse 3s ease-in-out infinite;
-            box-shadow: 
-                0 0 40px rgba(79, 70, 229, 0.4),
-                inset 0 0 30px rgba(255, 255, 255, 0.1);
-            cursor: default;
-        }
-        
-        /* Brain neural network lines */
-        #brain::before {
-            content: '';
-            position: absolute;
-            top: 20%;
-            left: 20%;
-            width: 60%;
-            height: 60%;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            animation: neuralPulse 2s ease-in-out infinite alternate;
-        }
-        
-        #brain::after {
-            content: '';
-            position: absolute;
-            top: 35%;
-            left: 35%;
-            width: 30%;
-            height: 30%;
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            border-radius: 50%;
-            animation: neuralPulse 2.5s ease-in-out infinite alternate-reverse;
-        }
-        
-        @keyframes brainPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        
-        @keyframes neuralPulse {
-            0% { opacity: 0.3; transform: scale(1); }
-            100% { opacity: 0.7; transform: scale(1.1); }
-        }
-        
-        /* Brain icon inside */
-        .brain-icon {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 48px;
-            font-weight: 300;
-        }
-        
-        /* Thesis sections positioned around brain */
+        /* Thesis sections positioned around center - BIGGER BOXES */
         .thesis-section {
             position: absolute;
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 15px;
-            padding: 20px 24px;
-            min-width: 200px;
-            max-width: 250px;
+            padding: 24px 28px;
+            min-width: 240px;
+            max-width: 300px;
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
@@ -466,7 +399,7 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
         
         .thesis-section h3 {
             color: #ffffff;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 600;
             margin-bottom: 8px;
             text-align: center;
@@ -475,104 +408,98 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
         
         .thesis-preview {
             color: rgba(255, 255, 255, 0.8);
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 400;
             text-align: center;
             line-height: 1.4;
         }
         
-        /* Connection lines from brain to sections */
-        .connection-line {
-            position: absolute;
-            background: linear-gradient(90deg, transparent, rgba(79, 70, 229, 0.6), transparent);
-            height: 2px;
-            z-index: 5;
-            animation: lineGlow 3s ease-in-out infinite;
-        }
-        
-        @keyframes lineGlow {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 0.8; }
-        }
-        
-        /* Content modal */
-        #content-modal {
+        /* Blur overlay for background */
+        .blur-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            backdrop-filter: blur(8px);
+            z-index: 500;
             opacity: 0;
             visibility: hidden;
             transition: all 0.3s ease;
         }
         
-        #content-modal.active {
+        .blur-overlay.active {
             opacity: 1;
             visibility: visible;
         }
         
-        .modal-content {
+        /* Content popup - appears above clicked box */
+        .content-popup {
+            position: absolute;
             background: linear-gradient(135deg, rgba(15, 15, 35, 0.95), rgba(26, 26, 46, 0.95));
             border: 1px solid rgba(79, 70, 229, 0.3);
             border-radius: 20px;
-            padding: 40px;
-            max-width: 600px;
-            width: 90%;
-            position: relative;
+            padding: 30px;
+            min-width: 400px;
+            max-width: 500px;
             backdrop-filter: blur(20px);
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
         }
         
-        .modal-title {
+        .content-popup.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        
+        .popup-title {
             color: #ffffff;
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 700;
-            margin-bottom: 30px;
+            margin-bottom: 24px;
             text-align: center;
             background: linear-gradient(135deg, #4f46e5, #7c3aed);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         
-        .modal-bullets {
+        .popup-bullets {
             list-style: none;
             padding: 0;
         }
         
-        .modal-bullets li {
+        .popup-bullets li {
             color: #e0e7ff;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 500;
-            margin-bottom: 16px;
-            padding-left: 30px;
+            margin-bottom: 14px;
+            padding-left: 25px;
             position: relative;
-            line-height: 1.5;
+            line-height: 1.4;
         }
         
-        .modal-bullets li::before {
+        .popup-bullets li::before {
             content: '→';
             position: absolute;
             left: 0;
             color: #4f46e5;
             font-weight: 700;
-            font-size: 20px;
+            font-size: 18px;
         }
         
         .close-btn {
             position: absolute;
-            top: 15px;
-            right: 20px;
+            top: 12px;
+            right: 16px;
             background: none;
             border: none;
             color: rgba(255, 255, 255, 0.7);
-            font-size: 28px;
+            font-size: 24px;
             cursor: pointer;
             transition: color 0.3s ease;
             line-height: 1;
@@ -580,19 +507,6 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
         
         .close-btn:hover {
             color: #ffffff;
-        }
-        
-        /* Instructions */
-        #instructions {
-            position: absolute;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 14px;
-            font-weight: 400;
-            text-align: center;
-            letter-spacing: 0.5px;
         }
     </style>
 </head>
@@ -602,38 +516,27 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
     <div id="container">
         <div id="main-title">COMPANY_NAME_PLACEHOLDER ANALYSIS</div>
         <div id="subtitle">Investment Thesis Overview</div>
-        
-        <div id="brain-container">
-            <div id="brain">
-                <div class="brain-icon">🧠</div>
-            </div>
-        </div>
-        
-        <div id="instructions">
-            Click on any section to view key insights
-        </div>
     </div>
     
-    <div id="content-modal">
-        <div class="modal-content">
-            <button class="close-btn">×</button>
-            <div class="modal-title"></div>
-            <ul class="modal-bullets"></ul>
-        </div>
+    <div class="blur-overlay" id="blur-overlay"></div>
+    
+    <div class="content-popup" id="content-popup">
+        <button class="close-btn">×</button>
+        <div class="popup-title"></div>
+        <ul class="popup-bullets"></ul>
     </div>
 
     <script>
         const thesisSections = SECTIONS_JSON_PLACEHOLDER;
-        const companyName = "COMPANY_NAME_PLACEHOLDER";
         
-        // Position sections around the brain
+        // Position sections around the center - BIGGER SPACING
         const positions = [
-            { top: '20%', left: '15%', lineAngle: 135 },
-            { top: '20%', right: '15%', lineAngle: 45 },
-            { top: '50%', left: '8%', lineAngle: 180 },
-            { top: '50%', right: '8%', lineAngle: 0 },
-            { top: '75%', left: '15%', lineAngle: 225 },
-            { top: '75%', right: '15%', lineAngle: 315 }
+            { top: '18%', left: '15%' },
+            { top: '18%', right: '15%' },
+            { top: '45%', left: '8%' },
+            { top: '45%', right: '8%' },
+            { top: '72%', left: '15%' },
+            { top: '72%', right: '15%' }
         ];
         
         function createThesisLayout() {
@@ -646,62 +549,37 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
                 const sectionEl = document.createElement('div');
                 sectionEl.className = 'thesis-section';
                 sectionEl.style.position = 'absolute';
+                sectionEl.dataset.index = index;
                 
                 // Apply position
                 const pos = positions[index];
                 Object.keys(pos).forEach(key => {
-                    if (key !== 'lineAngle') {
-                        sectionEl.style[key] = pos[key];
-                    }
+                    sectionEl.style[key] = pos[key];
                 });
                 
                 // Add content
                 sectionEl.innerHTML = `
                     <h3>${section.title}</h3>
-                    <div class="thesis-preview">Click to explore key insights</div>
+                    <div class="thesis-preview">Click to explore insights</div>
                 `;
                 
                 // Add click handler
-                sectionEl.addEventListener('click', () => {
-                    showSectionDetails(section);
+                sectionEl.addEventListener('click', (e) => {
+                    showSectionDetails(section, sectionEl);
                 });
                 
                 container.appendChild(sectionEl);
-                
-                // Create connection line
-                createConnectionLine(index, pos);
             });
         }
         
-        function createConnectionLine(index, position) {
-            const line = document.createElement('div');
-            line.className = 'connection-line';
+        function showSectionDetails(section, clickedElement) {
+            const popup = document.getElementById('content-popup');
+            const blurOverlay = document.getElementById('blur-overlay');
+            const title = popup.querySelector('.popup-title');
+            const bullets = popup.querySelector('.popup-bullets');
             
-            // Calculate line position and rotation based on section position
-            const centerX = window.innerWidth / 2;
-            const centerY = window.innerHeight / 2;
-            
-            let startX = centerX;
-            let startY = centerY;
-            let length = 150;
-            let angle = position.lineAngle || 0;
-            
-            line.style.width = length + 'px';
-            line.style.left = (startX - length / 2) + 'px';
-            line.style.top = startY + 'px';
-            line.style.transform = `rotate(${angle}deg)`;
-            line.style.transformOrigin = 'center';
-            
-            document.getElementById('container').appendChild(line);
-        }
-        
-        function showSectionDetails(section) {
-            const modal = document.getElementById('content-modal');
-            const title = modal.querySelector('.modal-title');
-            const bullets = modal.querySelector('.modal-bullets');
-            
+            // Set content
             title.textContent = section.title;
-            
             bullets.innerHTML = '';
             section.bullets.forEach(bullet => {
                 const li = document.createElement('li');
@@ -709,24 +587,39 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
                 bullets.appendChild(li);
             });
             
-            modal.classList.add('active');
+            // Position popup above the clicked box
+            const rect = clickedElement.getBoundingClientRect();
+            const popupWidth = 450;
+            const popupHeight = 300;
+            
+            let left = rect.left + (rect.width / 2) - (popupWidth / 2);
+            let top = rect.top - popupHeight - 20;
+            
+            // Keep popup on screen
+            if (left < 20) left = 20;
+            if (left + popupWidth > window.innerWidth - 20) left = window.innerWidth - popupWidth - 20;
+            if (top < 20) top = rect.bottom + 20;
+            
+            popup.style.left = left + 'px';
+            popup.style.top = top + 'px';
+            
+            // Show popup and blur
+            blurOverlay.classList.add('active');
+            popup.classList.add('active');
         }
         
-        function closeModal() {
-            document.getElementById('content-modal').classList.remove('active');
+        function closePopup() {
+            document.getElementById('content-popup').classList.remove('active');
+            document.getElementById('blur-overlay').classList.remove('active');
         }
         
         // Event listeners
-        document.querySelector('.close-btn').addEventListener('click', closeModal);
-        document.getElementById('content-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'content-modal') {
-                closeModal();
-            }
-        });
+        document.querySelector('.close-btn').addEventListener('click', closePopup);
+        document.getElementById('blur-overlay').addEventListener('click', closePopup);
         
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                closeModal();
+                closePopup();
             }
         });
         
