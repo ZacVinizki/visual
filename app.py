@@ -6,8 +6,12 @@ import webbrowser
 import json
 import re
 
-# Add your OpenAI API key here
-OPENAI_API_KEY = "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"  # Replace with your actual API key
+# Get API key from secrets
+try:
+    OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+except KeyError:
+    st.error("❌ OpenAI API key not found in secrets. Please configure it in your Streamlit app settings.")
+    st.stop()
 
 # Set page config
 st.set_page_config(
@@ -21,28 +25,28 @@ def format_thesis_with_headers(text: str) -> str:
     """
     Use AI to reformat thesis text with proper section headers and colons
     """
-    client = OpenAI(api_key=OPENAI_API_KEY)
-    
-    prompt = f"""
-    Please analyze this investment thesis and break it into 4-6 major sections with natural, flowing headers.
-    
-    Your job is to:
-    1. Read through the text and identify the 4-6 MAJOR themes/topics (don't over-segment)
-    2. Group related content together - combine smaller related points into substantial sections
-    3. Create section headers that sound natural and professional - like how an investment analyst would organize major talking points
-    4. Each section should have enough content to discuss for 30-60 seconds in a video presentation
-    5. Headers should be concise but descriptive using investment language (e.g., "Activist Momentum", "Financial Position", "M&A Catalysts")
-    6. Put each header on its own line followed by a colon, then a blank line
-    7. Add blank lines between sections for clear separation
-    8. Keep all original content but consolidate under fewer, more substantial headers
-    
-    Think like organizing major talking points for a 5-minute investment pitch - you want substantial sections, not tiny fragments.
-    
-    Original text:
-    {text}
-    """
-    
     try:
+        client = OpenAI(api_key=OPENAI_API_KEY)
+        
+        prompt = f"""
+        Please analyze this investment thesis and break it into 4-6 major sections with natural, flowing headers.
+        
+        Your job is to:
+        1. Read through the text and identify the 4-6 MAJOR themes/topics (don't over-segment)
+        2. Group related content together - combine smaller related points into substantial sections
+        3. Create section headers that sound natural and professional - like how an investment analyst would organize major talking points
+        4. Each section should have enough content to discuss for 30-60 seconds in a video presentation
+        5. Headers should be concise but descriptive using investment language (e.g., "Activist Momentum", "Financial Position", "M&A Catalysts")
+        6. Put each header on its own line followed by a colon, then a blank line
+        7. Add blank lines between sections for clear separation
+        8. Keep all original content but consolidate under fewer, more substantial headers
+        
+        Think like organizing major talking points for a 5-minute investment pitch - you want substantial sections, not tiny fragments.
+        
+        Original text:
+        {text}
+        """
+        
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
@@ -85,36 +89,6 @@ def extract_company_name(raw_text: str) -> str:
         return "INVESTMENT"
 
 def parse_thesis_sections(formatted_text: str) -> list:
-    """
-    Parse the formatted thesis text into sections for visualization
-    """
-    sections = []
-    lines = formatted_text.split('\n')
-    current_section = None
-    current_content = []
-    
-    for line in lines:
-        line = line.strip()
-        if line.endswith(':') and line and not line.startswith(' '):
-            # This is a section header
-            if current_section:
-                sections.append({
-                    'title': current_section,
-                    'content': '\n'.join(current_content).strip()
-                })
-            current_section = line[:-1]  # Remove the colon
-            current_content = []
-        elif line:
-            current_content.append(line)
-    
-    # Add the last section
-    if current_section:
-        sections.append({
-            'title': current_section,
-            'content': '\n'.join(current_content).strip()
-        })
-    
-    return sections
     """
     Parse the formatted thesis text into sections for visualization
     """
