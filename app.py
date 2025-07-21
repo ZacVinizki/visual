@@ -38,6 +38,10 @@ def format_thesis_with_headers(text: str) -> str:
     7. Add blank lines between sections for clear separation
     8. Keep all original content but consolidate under fewer, more substantial headers
     
+    CRITICAL: Headers must be proper nouns/phrases, NOT sentences. Do NOT start headers with words like "And", "But", "The", etc.
+    Good examples: "Management Changes", "Financial Performance", "Strategic Options"
+    Bad examples: "And Power has Shifted", "The Company Background", "But There are Issues"
+    
     Think like organizing major talking points for a 5-minute investment pitch - you want substantial sections, not tiny fragments.
     
     Original text:
@@ -516,6 +520,10 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
     <div id="container">
         <div id="main-title">COMPANY_NAME_PLACEHOLDER ANALYSIS</div>
         <div id="subtitle">Investment Thesis Overview</div>
+        
+        <div id="brain-container">
+            <div id="brain"></div>
+        </div>
     </div>
     
     <div class="blur-overlay" id="blur-overlay"></div>
@@ -587,18 +595,24 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
                 bullets.appendChild(li);
             });
             
-            // Position popup above the clicked box
+            // Position popup DIRECTLY centered above the clicked box
             const rect = clickedElement.getBoundingClientRect();
             const popupWidth = 450;
             const popupHeight = 300;
             
+            // Center horizontally on the box
             let left = rect.left + (rect.width / 2) - (popupWidth / 2);
-            let top = rect.top - popupHeight - 20;
+            // Position directly above the box with small gap
+            let top = rect.top - popupHeight - 15;
             
-            // Keep popup on screen
+            // Keep popup on screen horizontally
             if (left < 20) left = 20;
             if (left + popupWidth > window.innerWidth - 20) left = window.innerWidth - popupWidth - 20;
-            if (top < 20) top = rect.bottom + 20;
+            
+            // If popup would go off top of screen, put it below the box instead
+            if (top < 20) {
+                top = rect.bottom + 15;
+            }
             
             popup.style.left = left + 'px';
             popup.style.top = top + 'px';
