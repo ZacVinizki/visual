@@ -125,41 +125,35 @@ def launch_space_visualization(sections: list, company_name: str = "INVESTMENT")
     # Create the HTML content for the brain visualization
     html_content = create_space_visualization_html(sections, company_name)
     
-    # Escape the HTML content properly for JavaScript
-    escaped_html = html_content.replace('\\', '\\\\').replace('`', '\\`').replace('${', '\\${').replace('"', '\\"')
+    # Create a data URL
+    import urllib.parse
+    encoded_html = urllib.parse.quote(html_content)
+    data_url = f"data:text/html;charset=utf-8,{encoded_html}"
     
-    # Create HTML with auto-popup JavaScript
-    popup_html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Opening Brain Visualization...</title>
-        <meta charset="UTF-8">
-    </head>
-    <body>
-        <p style="text-align: center; font-family: Arial; color: #666;">Opening brain visualization...</p>
-        <script>
-            try {{
-                const htmlContent = `{escaped_html}`;
-                const newWindow = window.open('', '_blank', 'width=1400,height=900,scrollbars=yes');
-                if (newWindow) {{
-                    newWindow.document.write(htmlContent);
-                    newWindow.document.close();
-                }} else {{
-                    alert('Please allow popups for this site to view the brain visualization');
-                }}
-            }} catch(e) {{
-                console.error('Error opening visualization:', e);
-            }}
-        </script>
-    </body>
-    </html>
-    """
+    # Create a clickable link that opens in new tab
+    st.markdown("---")
+    st.markdown(f"""
+    ### 🧠 Brain Visualization Ready!
     
-    # Use components.html to trigger the popup
-    components.html(popup_html, height=100)
+    <a href="{data_url}" target="_blank" style="
+        display: inline-block;
+        background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        color: white;
+        padding: 15px 30px;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 18px;
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+        transition: transform 0.2s ease;
+    " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0px)'">
+        🧠 Open Full-Screen Brain Visualization
+    </a>
     
-    st.success("🧠 **Brain visualization opening in new window!** (Allow popups if prompted)")
+    <p style="margin-top: 15px; color: #888; font-size: 14px;">
+        Click the button above to open the interactive brain visualization in a new tab
+    </p>
+    """, unsafe_allow_html=True)
 
 def create_space_visualization_html(sections: list, company_name: str = "INVESTMENT") -> str:
     """
