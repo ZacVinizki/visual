@@ -2,9 +2,9 @@ import streamlit as st
 from openai import OpenAI
 import os
 import tempfile
-import webbrowser
 import json
 import re
+import streamlit.components.v1 as components
 
 # Get API key from secrets
 try:
@@ -21,6 +21,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+@st.cache_data(ttl=3600)  # Cache for 1 hour to speed up repeated requests
 def format_thesis_with_headers(text: str) -> str:
     """
     Use AI to reformat thesis text with proper section headers and colons
@@ -120,21 +121,140 @@ def parse_thesis_sections(formatted_text: str) -> list:
     
     return sections
 
-def launch_space_visualization(sections: list, company_name: str = "INVESTMENT"):
+@st.cache_data(ttl=3600)  # Cache bullet points to speed up repeated requests
+def create_bullet_points_batch(sections_data: list) -> list:
     """
-    Create and launch the cinematic brain visualization
+    Create bullet points for all sections in a single API call for speed
     """
-    # Create the HTML content for the brain visualization
-    html_content = create_space_visualization_html(sections, company_name)
+    try:
+        client = OpenAI(api_key=OPENAI_API_KEY)
+        
+        # Prepare all sections for batch processing
+        sections_text = ""
+        for i, section in enumerate(sections_data):
+            content = section['content'][:800]  # Limit content length
+            sections_text += f"Section {i+1}: {section['title']}\nContent: {content}\n\n"
+        
+        prompt = f"""
+        Analyze these investment thesis sections and create exactly 3 bullet points for each section.
+        
+        {sections_text}
+        
+        For each section, create 3 bullet points that are:
+        - 5-8 words each
+        - Key investment insights
+        - Specific and actionable
+        - Professional investment language
+        
+        Format your response as:
+        Section 1:
+        • First bullet point
+        • Second bullet point  
+        • Third bullet point
+        
+        Section 2:
+        • First bullet point
+        • Second bullet point
+        • Third bullet point
+        
+        (Continue for all sections)
+        """
+        
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.1,
+            max_tokens=800,
+            timeout=15
+        )
+        
+        result = response.choices[0].message.content.strip()
+        
+        # Parse the response into structured data
+        processed_sections = []
+        current_bullets = []
+        
+        for line in result.split('\n'):
+            line = line.strip()
+            if line.startswith('Section'):
+                if current_bullets:
+                    processed_sections.append(current_bullets)
+                current_bullets = []
+            elif line.startswith('•') or line.startswith('-'):
+                bullet = line.replace('•', '').replace('-', '').strip()
+                if bullet:
+                    current_bullets.append(bullet)
+        
+        # Add the last section
+        if current_bullets:
+            processed_sections.append(current_bullets)
+        
+        # Ensure we have the right number of sections with fallbacks
+        final_sections = []
+        for i, section in enumerate(sections_data):
+            if i < len(processed_sections) and len(processed_sections[i]) >= 2:
+                bullets = processed_sections[i][:3]  # Take first 3
+                # Ensure exactly 3 bullets
+                while len(bullets) < 3:
+                    bullets.append(f"{section['title']} key insight")
+                final_sections.append({
+                    'title': section['title'],
+                    'bullets': bullets
+                })
+            else:
+                # Fallback bullets
+                final_sections.append({
+                    'title': section['title'],
+                    'bullets': [
+                        f"{section['title']} presents opportunity",
+                        "Key metrics show potential", 
+                        "Strategic value identified"
+                    ]
+                })
+        
+        return final_sections
+        
+    except Exception as e:
+        print(f"Batch bullet generation failed: {str(e)}")
+        # Fallback to simple bullets
+        fallback_sections = []
+        for section in sections_data:
+            fallback_sections.append({
+                'title': section['title'],
+                'bullets': [
+                    f"{section['title']} analysis complete",
+                    "Investment opportunity identified",
+                    "Strategic review in progress"
+                ]
+            })
+        return fallback_sections
+
+def display_brain_visualization(sections: list, company_name: str = "INVESTMENT"):
+    """
+    Display the brain visualization directly in Streamlit
+    """
+    # Process sections with optimized bullet generation
+    with st.spinner("🧠 Generating investment insights..."):
+        processed_sections = create_bullet_points_batch(sections)
     
-    # Write to a temporary HTML file
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
-        f.write(html_content)
-        temp_file = f.name
+    # Create the HTML content
+    html_content = create_space_visualization_html(processed_sections, company_name)
     
-    # Open in browser
-    webbrowser.open('file://' + temp_file)
-    st.success("🧠 **Brain visualization launched!** Check your browser for the professional investment analysis.")
+    # Display directly in Streamlit with full height
+    st.markdown("### 🧠 Interactive Investment Analysis")
+    st.markdown("*Click on any section around the brain to explore key insights*")
+    
+    # Display the visualization
+    components.html(html_content, height=800, scrolling=False)
+    
+    # Provide download option
+    st.download_button(
+        label="📥 Download Full-Screen Version",
+        data=html_content,
+        file_name=f"{company_name}_investment_analysis.html",
+        mime="text/html",
+        help="Download to open in full browser window"
+    )
 
 def create_space_visualization_html(sections: list, company_name: str = "INVESTMENT") -> str:
     """
@@ -143,135 +263,7 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
     # Convert sections to JSON safely
     sections_json = json.dumps(sections)
     
-    # Create concise summaries for each section using AI
-    def create_bullet_points(title, content):
-        """Use AI to extract 3 key bullet points from content"""
-        try:
-            client = OpenAI(api_key=OPENAI_API_KEY)
-            
-            # Truncate content if too long to avoid API issues
-            max_content_length = 1500
-            if len(content) > max_content_length:
-                content = content[:max_content_length] + "..."
-            
-            prompt = f"""
-            Analyze this investment thesis section and extract exactly 3 key bullet points.
-            
-            Section: {title}
-            Content: {content}
-            
-            Create 3 bullet points that are:
-            - 5-8 words each
-            - Key takeaways for investors
-            - Complete thoughts (no fragments)
-            - Specific insights from the content above
-            
-            Format: Return only 3 lines, no bullets or numbers, just the text.
-            
-            Example good outputs:
-            Stock down 80% creates opportunity
-            New CEO has transaction experience  
-            Activists pushing for strategic alternatives
-            """
-            
-            response = client.chat.completions.create(
-                model="gpt-4",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,
-                max_tokens=150,
-                timeout=10
-            )
-            
-            result = response.choices[0].message.content.strip()
-            
-            if not result:
-                raise Exception("Empty response from AI")
-            
-            bullets = [line.strip() for line in result.split('\n') if line.strip()]
-            
-            # Validate we got reasonable bullets
-            if len(bullets) < 2:
-                raise Exception("Not enough bullets generated")
-            
-            # Filter out any bullets that are too generic or contain fallback phrases
-            filtered_bullets = []
-            generic_phrases = ['key thesis point', 'investment consideration', 'strategic factor', 'requires analysis']
-            
-            for bullet in bullets:
-                is_generic = any(phrase in bullet.lower() for phrase in generic_phrases)
-                if not is_generic and len(bullet.split()) >= 3:
-                    filtered_bullets.append(bullet)
-            
-            # If we don't have enough good bullets, try a simpler approach
-            if len(filtered_bullets) < 2:
-                # Extract key phrases from the content directly
-                sentences = content.replace('\n', '. ').split('.')
-                extracted_bullets = []
-                
-                for sentence in sentences[:10]:  # Look at first 10 sentences
-                    sentence = sentence.strip()
-                    if len(sentence.split()) >= 5 and len(sentence.split()) <= 12:
-                        # Look for sentences with investment-relevant keywords
-                        keywords = ['CEO', 'stock', 'price', 'margin', 'revenue', 'activist', 'M&A', 'sale', 'acquisition', 'value', 'growth', 'decline']
-                        if any(keyword.lower() in sentence.lower() for keyword in keywords):
-                            extracted_bullets.append(sentence)
-                            if len(extracted_bullets) >= 3:
-                                break
-                
-                if extracted_bullets:
-                    return extracted_bullets[:3]
-            
-            # Ensure we have exactly 3 bullets
-            while len(filtered_bullets) < 3:
-                if content:
-                    # Try to extract a simple fact from content
-                    words = content.split()
-                    if len(words) > 6:
-                        simple_bullet = ' '.join(words[:6])
-                        filtered_bullets.append(simple_bullet)
-                    else:
-                        filtered_bullets.append(f"{title} under analysis")
-                else:
-                    filtered_bullets.append(f"{title} key factors")
-                    
-            return filtered_bullets[:3]
-            
-        except Exception as e:
-            print(f"AI bullet generation failed for {title}: {str(e)}")
-            
-            # Better fallback - extract from actual content
-            if content:
-                sentences = content.replace('\n', '. ').split('.')
-                fallback_bullets = []
-                
-                for sentence in sentences:
-                    sentence = sentence.strip()
-                    if sentence and len(sentence.split()) >= 4 and len(sentence.split()) <= 10:
-                        fallback_bullets.append(sentence)
-                        if len(fallback_bullets) >= 3:
-                            break
-                
-                if fallback_bullets:
-                    return fallback_bullets[:3]
-            
-            # Last resort fallback
-            return [
-                f"{title} presents opportunity",
-                f"Key metrics show potential",
-                f"Investment thesis under review"
-            ]
-    
-    # Process sections for concise display
-    processed_sections = []
-    for section in sections:
-        processed_sections.append({
-            'title': section['title'],
-            'bullets': create_bullet_points(section['title'], section['content'])
-        })
-    
-    processed_json = json.dumps(processed_sections)
-    
-    # Create HTML template
+    # Create HTML template with optimized styling
     html_template = '''<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -289,11 +281,11 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
         
         body {
             background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
-            overflow: hidden;
             font-family: 'Inter', sans-serif;
             cursor: default;
             height: 100vh;
             position: relative;
+            overflow: hidden;
         }
         
         /* Animated background particles */
@@ -306,9 +298,7 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
             background-image: 
                 radial-gradient(2px 2px at 20px 30px, rgba(79, 70, 229, 0.3), transparent),
                 radial-gradient(2px 2px at 40px 70px, rgba(124, 58, 237, 0.2), transparent),
-                radial-gradient(1px 1px at 90px 40px, rgba(236, 72, 153, 0.3), transparent),
-                radial-gradient(1px 1px at 130px 80px, rgba(79, 70, 229, 0.2), transparent),
-                radial-gradient(2px 2px at 160px 30px, rgba(124, 58, 237, 0.1), transparent);
+                radial-gradient(1px 1px at 90px 40px, rgba(236, 72, 153, 0.3), transparent);
             background-repeat: repeat;
             background-size: 200px 100px;
             animation: particleFloat 20s linear infinite;
@@ -321,7 +311,7 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
         }
         
         #container {
-            width: 100vw;
+            width: 100%;
             height: 100vh;
             position: relative;
             z-index: 10;
@@ -333,11 +323,11 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
         /* Main title */
         #main-title {
             position: absolute;
-            top: 60px;
+            top: 40px;
             left: 50%;
             transform: translateX(-50%);
             color: #ffffff;
-            font-size: 42px;
+            font-size: 32px;
             font-weight: 800;
             letter-spacing: 1px;
             text-align: center;
@@ -349,11 +339,11 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
         
         #subtitle {
             position: absolute;
-            top: 110px;
+            top: 80px;
             left: 50%;
             transform: translateX(-50%);
             color: rgba(255, 255, 255, 0.7);
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 400;
             letter-spacing: 0.5px;
             text-align: center;
@@ -362,14 +352,14 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
         /* Central brain container */
         #brain-container {
             position: relative;
-            width: 200px;
-            height: 200px;
+            width: 150px;
+            height: 150px;
             margin: 0 auto;
         }
         
         #brain {
-            width: 200px;
-            height: 200px;
+            width: 150px;
+            height: 150px;
             background: linear-gradient(135deg, #4f46e5, #7c3aed, #ec4899);
             border-radius: 50%;
             position: relative;
@@ -422,7 +412,7 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
             left: 50%;
             transform: translate(-50%, -50%);
             color: rgba(255, 255, 255, 0.9);
-            font-size: 48px;
+            font-size: 36px;
             font-weight: 300;
         }
         
@@ -432,10 +422,10 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
-            padding: 20px 24px;
-            min-width: 200px;
-            max-width: 250px;
+            border-radius: 12px;
+            padding: 16px 20px;
+            min-width: 180px;
+            max-width: 220px;
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
@@ -444,22 +434,22 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
         .thesis-section:hover {
             background: rgba(79, 70, 229, 0.2);
             border-color: rgba(79, 70, 229, 0.5);
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(79, 70, 229, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(79, 70, 229, 0.3);
         }
         
         .thesis-section h3 {
             color: #ffffff;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             text-align: center;
             letter-spacing: 0.3px;
         }
         
         .thesis-preview {
             color: rgba(255, 255, 255, 0.8);
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 400;
             text-align: center;
             line-height: 1.4;
@@ -505,9 +495,9 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
         .modal-content {
             background: linear-gradient(135deg, rgba(15, 15, 35, 0.95), rgba(26, 26, 46, 0.95));
             border: 1px solid rgba(79, 70, 229, 0.3);
-            border-radius: 20px;
-            padding: 40px;
-            max-width: 600px;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 500px;
             width: 90%;
             position: relative;
             backdrop-filter: blur(20px);
@@ -516,9 +506,9 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
         
         .modal-title {
             color: #ffffff;
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 700;
-            margin-bottom: 30px;
+            margin-bottom: 24px;
             text-align: center;
             background: linear-gradient(135deg, #4f46e5, #7c3aed);
             -webkit-background-clip: text;
@@ -532,12 +522,12 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
         
         .modal-bullets li {
             color: #e0e7ff;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 500;
-            margin-bottom: 16px;
-            padding-left: 30px;
+            margin-bottom: 14px;
+            padding-left: 25px;
             position: relative;
-            line-height: 1.5;
+            line-height: 1.4;
         }
         
         .modal-bullets li::before {
@@ -546,17 +536,17 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
             left: 0;
             color: #4f46e5;
             font-weight: 700;
-            font-size: 20px;
+            font-size: 18px;
         }
         
         .close-btn {
             position: absolute;
-            top: 15px;
-            right: 20px;
+            top: 12px;
+            right: 16px;
             background: none;
             border: none;
             color: rgba(255, 255, 255, 0.7);
-            font-size: 28px;
+            font-size: 24px;
             cursor: pointer;
             transition: color 0.3s ease;
             line-height: 1;
@@ -569,11 +559,11 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
         /* Instructions */
         #instructions {
             position: absolute;
-            bottom: 40px;
+            bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
             color: rgba(255, 255, 255, 0.6);
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 400;
             text-align: center;
             letter-spacing: 0.5px;
@@ -608,16 +598,15 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
 
     <script>
         const thesisSections = SECTIONS_JSON_PLACEHOLDER;
-        const companyName = "COMPANY_NAME_PLACEHOLDER";
         
         // Position sections around the brain
         const positions = [
-            { top: '20%', left: '15%', lineAngle: 135 },
-            { top: '20%', right: '15%', lineAngle: 45 },
-            { top: '50%', left: '8%', lineAngle: 180 },
-            { top: '50%', right: '8%', lineAngle: 0 },
-            { top: '75%', left: '15%', lineAngle: 225 },
-            { top: '75%', right: '15%', lineAngle: 315 }
+            { top: '15%', left: '20%', lineAngle: 135 },
+            { top: '15%', right: '20%', lineAngle: 45 },
+            { top: '45%', left: '12%', lineAngle: 180 },
+            { top: '45%', right: '12%', lineAngle: 0 },
+            { top: '70%', left: '20%', lineAngle: 225 },
+            { top: '70%', right: '20%', lineAngle: 315 }
         ];
         
         function createThesisLayout() {
@@ -642,7 +631,7 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
                 // Add content
                 sectionEl.innerHTML = `
                     <h3>${section.title}</h3>
-                    <div class="thesis-preview">Click to explore key insights</div>
+                    <div class="thesis-preview">Click to explore insights</div>
                 `;
                 
                 // Add click handler
@@ -661,18 +650,16 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
             const line = document.createElement('div');
             line.className = 'connection-line';
             
-            // Calculate line position and rotation based on section position
+            // Calculate line position and rotation
             const centerX = window.innerWidth / 2;
             const centerY = window.innerHeight / 2;
             
-            let startX = centerX;
-            let startY = centerY;
-            let length = 150;
+            let length = 120;
             let angle = position.lineAngle || 0;
             
             line.style.width = length + 'px';
-            line.style.left = (startX - length / 2) + 'px';
-            line.style.top = startY + 'px';
+            line.style.left = (centerX - length / 2) + 'px';
+            line.style.top = centerY + 'px';
             line.style.transform = `rotate(${angle}deg)`;
             line.style.transformOrigin = 'center';
             
@@ -721,7 +708,7 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
 </html>'''
     
     # Replace placeholders safely
-    html_content = html_template.replace('SECTIONS_JSON_PLACEHOLDER', processed_json)
+    html_content = html_template.replace('SECTIONS_JSON_PLACEHOLDER', sections_json)
     html_content = html_content.replace('COMPANY_NAME_PLACEHOLDER', company_name)
     
     return html_content
@@ -834,6 +821,18 @@ def main():
             cursor: not-allowed !important;
         }
         
+        /* Download button styling */
+        .stDownloadButton > button {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
+            color: #ffffff !important;
+            border: none !important;
+            border-radius: 8px !important;
+            font-weight: 500 !important;
+            font-size: 0.9rem !important;
+            padding: 0.5rem 1.5rem !important;
+            margin-top: 0.5rem !important;
+        }
+        
         /* Messages */
         .stSuccess {
             background-color: #1a2e1a !important;
@@ -930,20 +929,9 @@ def main():
         format_button = st.button("🔄 Format with Headers", type="primary", disabled=not thesis_text)
     
     with col2:
-        # View visualization button - NOW ACTIVE!
+        # View visualization button - NOW MUCH FASTER!
         has_formatted_text = st.session_state.current_text and ":" in st.session_state.current_text
         viz_button = st.button("🧠 Launch Brain Visualization", type="secondary", disabled=not has_formatted_text)
-        
-        if viz_button:
-            # Use stored company name if available, otherwise extract from current text
-            if hasattr(st.session_state, 'company_name'):
-                stored_company = st.session_state.company_name
-            else:
-                stored_company = extract_company_name(st.session_state.current_text)
-            
-            # Parse the thesis sections for the visualization
-            sections = parse_thesis_sections(st.session_state.current_text)
-            launch_space_visualization(sections, stored_company)
     
     # Process formatting
     if format_button:
@@ -968,10 +956,24 @@ def main():
         else:
             st.error("Please provide thesis text.")
     
+    # Process visualization
+    if viz_button:
+        # Use stored company name if available, otherwise extract from current text
+        if hasattr(st.session_state, 'company_name'):
+            stored_company = st.session_state.company_name
+        else:
+            stored_company = extract_company_name(st.session_state.current_text)
+        
+        # Parse the thesis sections for the visualization
+        sections = parse_thesis_sections(st.session_state.current_text)
+        
+        # Display the visualization directly in the app
+        display_brain_visualization(sections, stored_company)
+    
     # Show tip only if text has been formatted AND we didn't just format it
     if (st.session_state.current_text and ":" in st.session_state.current_text and 
         not st.session_state.just_formatted):
-        st.info("💡 **Tip:** Your thesis has been formatted with clear section headers. You can still edit the text above if needed.")
+        st.info("💡 **Tip:** Your thesis has been formatted with clear section headers. You can now launch the brain visualization!")
     
     # Reset the just_formatted flag after showing success
     if st.session_state.just_formatted:
