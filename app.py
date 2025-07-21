@@ -5,7 +5,6 @@ import tempfile
 import webbrowser
 import json
 import re
-import streamlit.components.v1 as components
 
 # Get API key from secrets (your working setup)
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
@@ -119,44 +118,19 @@ def parse_thesis_sections(formatted_text: str) -> list:
 
 def launch_space_visualization(sections: list, company_name: str = "INVESTMENT"):
     """
-    Create and launch the cinematic brain visualization - FULL SCREEN IN APP!
+    Create and launch the cinematic brain visualization
     """
     # Create the HTML content for the brain visualization
     html_content = create_space_visualization_html(sections, company_name)
     
-    # Show directly in Streamlit at full screen size
-    st.markdown("---")
+    # Write to a temporary HTML file
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
+        f.write(html_content)
+        temp_file = f.name
     
-    # Nuclear option - force everything to full width
-    st.markdown("""
-    <style>
-    .main {
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-    .block-container {
-        padding: 0 !important;
-        margin: 0 !important;
-        max-width: none !important;
-        width: 100vw !important;
-    }
-    .element-container {
-        width: 100vw !important;
-        margin: 0 !important;
-    }
-    .stComponentContainer {
-        width: 100vw !important;
-        margin: 0 !important;
-    }
-    iframe {
-        width: 100vw !important;
-        margin: 0 !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    # Display the visualization at full screen size
-    components.html(html_content, height=900, scrolling=False)
+    # Open in browser
+    webbrowser.open('file://' + temp_file)
+    st.success("🧠 **Brain visualization launched!** Check your browser for the professional investment analysis.")
 
 def create_space_visualization_html(sections: list, company_name: str = "INVESTMENT") -> str:
     """
