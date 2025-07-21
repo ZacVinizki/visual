@@ -119,27 +119,16 @@ def parse_thesis_sections(formatted_text: str) -> list:
 
 def launch_space_visualization(sections: list, company_name: str = "INVESTMENT"):
     """
-    Create and launch the cinematic brain visualization - NOW SHOWS IN APP!
+    Create and launch the cinematic brain visualization - FULL SCREEN IN APP!
     """
     # Create the HTML content for the brain visualization
     html_content = create_space_visualization_html(sections, company_name)
     
-    # Show directly in Streamlit instead of opening browser
+    # Show directly in Streamlit at full screen size
     st.markdown("---")
-    st.markdown("### 🧠 Interactive Investment Analysis")
-    st.markdown("*Click on any section around the brain to explore key insights*")
     
-    # Display the visualization directly in the app
-    components.html(html_content, height=700, scrolling=False)
-    
-    # Also provide download option for full-screen experience
-    st.download_button(
-        label="📥 Download Full-Screen Version",
-        data=html_content,
-        file_name=f"{company_name}_investment_analysis.html",
-        mime="text/html",
-        help="Download to open in full browser window"
-    )
+    # Display the visualization at full screen size
+    components.html(html_content, height=900, scrolling=False)
 
 def create_space_visualization_html(sections: list, company_name: str = "INVESTMENT") -> str:
     """
