@@ -127,27 +127,16 @@ def launch_space_visualization(sections: list, company_name: str = "INVESTMENT")
     # Show directly in Streamlit at full screen size
     st.markdown("---")
     
-    # CSS to properly center full-width component
+    # Simple CSS to force full width
     st.markdown("""
     <style>
     .main .block-container {
         max-width: none !important;
-        padding-left: 0 !important;
-        padding-right: 0 !important;
+        padding: 0 !important;
     }
     .element-container:has(iframe) {
         width: 100vw !important;
-        margin-left: calc(-50vw + 50%) !important;
-        margin-right: calc(-50vw + 50%) !important;
-        position: relative !important;
-        left: 0 !important;
-        right: 0 !important;
-    }
-    iframe {
-        width: 100% !important;
-        height: 900px !important;
-        margin: 0 auto !important;
-        display: block !important;
+        margin-left: calc(50% - 50vw) !important;
     }
     </style>
     """, unsafe_allow_html=True)
