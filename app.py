@@ -7,7 +7,7 @@ import json
 import re
 
 # Add your OpenAI API key here
-OPENAI_API_KEY = "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"  # Replace with your actual API key
+OPENAI_API_KEY = st.secrets.get("OPENAI_API_KEY", "your-api-key-here")
 
 # Set page config
 st.set_page_config(
