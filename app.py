@@ -437,35 +437,33 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
             visibility: visible;
         }
         
-        /* Content popup - appears above clicked box */
+        /* Content popup - REPLACES the clicked box */
         .content-popup {
             position: fixed !important;
             background: linear-gradient(135deg, rgba(15, 15, 35, 0.95), rgba(26, 26, 46, 0.95));
             border: 1px solid rgba(79, 70, 229, 0.3);
-            border-radius: 20px;
-            padding: 30px;
-            min-width: 400px;
-            max-width: 500px;
+            border-radius: 15px;
+            padding: 20px;
             backdrop-filter: blur(20px);
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
             z-index: 1000;
             opacity: 0;
             visibility: hidden;
-            transform: translateY(20px);
+            transform: scale(0.8);
             transition: all 0.3s ease;
         }
         
         .content-popup.active {
             opacity: 1;
             visibility: visible;
-            transform: translateY(0);
+            transform: scale(1);
         }
         
         .popup-title {
             color: #ffffff;
-            font-size: 24px;
+            font-size: 16px;
             font-weight: 700;
-            margin-bottom: 24px;
+            margin-bottom: 12px;
             text-align: center;
             background: linear-gradient(135deg, #4f46e5, #7c3aed);
             -webkit-background-clip: text;
@@ -479,12 +477,12 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
         
         .popup-bullets li {
             color: #e0e7ff;
-            font-size: 16px;
+            font-size: 12px;
             font-weight: 500;
-            margin-bottom: 14px;
-            padding-left: 25px;
+            margin-bottom: 8px;
+            padding-left: 18px;
             position: relative;
-            line-height: 1.4;
+            line-height: 1.3;
         }
         
         .popup-bullets li::before {
@@ -493,17 +491,17 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
             left: 0;
             color: #4f46e5;
             font-weight: 700;
-            font-size: 18px;
+            font-size: 14px;
         }
         
         .close-btn {
             position: absolute;
-            top: 12px;
-            right: 16px;
+            top: 5px;
+            right: 8px;
             background: none;
             border: none;
             color: rgba(255, 255, 255, 0.7);
-            font-size: 24px;
+            font-size: 18px;
             cursor: pointer;
             transition: color 0.3s ease;
             line-height: 1;
@@ -595,27 +593,19 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
                 bullets.appendChild(li);
             });
             
-            // Show popup first to get dimensions
-            popup.classList.add('active');
-            blurOverlay.classList.add('active');
-            
-            // Get clicked box position
+            // Get clicked box position - EXACT same position
             const boxRect = clickedElement.getBoundingClientRect();
             
-            // Position popup DIRECTLY above the center of the clicked box
-            const popupWidth = 450;
-            const popupHeight = 300;
-            
-            // Calculate exact center position
-            const boxCenterX = boxRect.left + (boxRect.width / 2);
-            const popupLeft = boxCenterX - (popupWidth / 2);
-            const popupTop = boxRect.top - popupHeight - 20;
-            
-            // Apply positioning
+            // Position popup EXACTLY where the box is (replace it)
             popup.style.position = 'fixed';
-            popup.style.left = popupLeft + 'px';
-            popup.style.top = popupTop + 'px';
-            popup.style.width = popupWidth + 'px';
+            popup.style.left = boxRect.left + 'px';
+            popup.style.top = boxRect.top + 'px';
+            popup.style.width = boxRect.width + 'px';
+            popup.style.minWidth = boxRect.width + 'px';
+            
+            // Show popup and blur everything else
+            blurOverlay.classList.add('active');
+            popup.classList.add('active');
         }
         
         function closePopup() {
