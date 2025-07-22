@@ -26,10 +26,10 @@ def format_thesis_with_headers(text: str) -> str:
     client = OpenAI(api_key=OPENAI_API_KEY)
     
     prompt = f"""
-    Please analyze this investment thesis and break it into 4-6 major sections with natural, flowing headers.
+    Please analyze this investment thesis and break it into 5-6 major sections with natural, flowing headers.
     
     Your job is to:
-    1. Read through the text and identify the 4-6 MAJOR themes/topics (don't over-segment)
+    1. Read through the text and identify the 5-6 MAJOR themes/topics (don't over-segment)
     2. Group related content together - combine smaller related points into substantial sections
     3. Create section headers that sound natural and professional - like how an investment analyst would organize major talking points
     4. Each section should have enough content to discuss for 30-60 seconds in a video presentation
