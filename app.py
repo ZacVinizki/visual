@@ -439,7 +439,7 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
         
         /* Content popup - appears above clicked box */
         .content-popup {
-            position: absolute;
+            position: fixed !important;
             background: linear-gradient(135deg, rgba(15, 15, 35, 0.95), rgba(26, 26, 46, 0.95));
             border: 1px solid rgba(79, 70, 229, 0.3);
             border-radius: 20px;
@@ -523,7 +523,7 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
         
         <div id="brain-container">
             <div id="brain">
-                <!-- Purple circle with animation, no emoji -->
+                <!-- Animated purple circle in center -->
             </div>
         </div>
     </div>
@@ -597,28 +597,32 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
                 bullets.appendChild(li);
             });
             
-            // Get exact box position
-            const rect = clickedElement.getBoundingClientRect();
-            const popupWidth = 450;
-            const popupHeight = 300;
+            // Force popup to be visible first to get accurate measurements
+            popup.style.visibility = 'hidden';
+            popup.style.display = 'block';
+            popup.classList.add('active');
             
-            // Position popup EXACTLY centered horizontally on the box
-            let left = rect.left + (rect.width / 2) - (popupWidth / 2);
-            // Position EXACTLY above the box with minimal gap
-            let top = rect.top - popupHeight - 10;
+            // Get actual popup dimensions
+            const popupRect = popup.getBoundingClientRect();
+            const actualWidth = popupRect.width;
+            const actualHeight = popupRect.height;
             
-            // Boundary checks
-            if (left < 10) left = 10;
-            if (left + popupWidth > window.innerWidth - 10) left = window.innerWidth - popupWidth - 10;
-            if (top < 10) top = rect.bottom + 10;
+            // Get clicked box position
+            const boxRect = clickedElement.getBoundingClientRect();
             
+            // Calculate position - center horizontally, directly above
+            const centerX = boxRect.left + (boxRect.width / 2);
+            const left = centerX - (actualWidth / 2);
+            const top = boxRect.top - actualHeight - 15;
+            
+            // Apply position
+            popup.style.position = 'fixed';
             popup.style.left = left + 'px';
             popup.style.top = top + 'px';
-            popup.style.position = 'fixed';
+            popup.style.visibility = 'visible';
             
-            // Show popup and blur
+            // Show blur
             blurOverlay.classList.add('active');
-            popup.classList.add('active');
         }
         
         function closePopup() {
