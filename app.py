@@ -522,9 +522,7 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
         <div id="subtitle">Investment Thesis Overview</div>
         
         <div id="brain-container">
-            <div id="brain">
-                <!-- Animated purple circle in center -->
-            </div>
+            <div id="brain"></div>
         </div>
     </div>
     
@@ -597,32 +595,27 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
                 bullets.appendChild(li);
             });
             
-            // Force popup to be visible first to get accurate measurements
-            popup.style.visibility = 'hidden';
-            popup.style.display = 'block';
+            // Show popup first to get dimensions
             popup.classList.add('active');
-            
-            // Get actual popup dimensions
-            const popupRect = popup.getBoundingClientRect();
-            const actualWidth = popupRect.width;
-            const actualHeight = popupRect.height;
+            blurOverlay.classList.add('active');
             
             // Get clicked box position
             const boxRect = clickedElement.getBoundingClientRect();
             
-            // Calculate position - center horizontally, directly above
-            const centerX = boxRect.left + (boxRect.width / 2);
-            const left = centerX - (actualWidth / 2);
-            const top = boxRect.top - actualHeight - 15;
+            // Position popup DIRECTLY above the center of the clicked box
+            const popupWidth = 450;
+            const popupHeight = 300;
             
-            // Apply position
+            // Calculate exact center position
+            const boxCenterX = boxRect.left + (boxRect.width / 2);
+            const popupLeft = boxCenterX - (popupWidth / 2);
+            const popupTop = boxRect.top - popupHeight - 20;
+            
+            // Apply positioning
             popup.style.position = 'fixed';
-            popup.style.left = left + 'px';
-            popup.style.top = top + 'px';
-            popup.style.visibility = 'visible';
-            
-            // Show blur
-            blurOverlay.classList.add('active');
+            popup.style.left = popupLeft + 'px';
+            popup.style.top = popupTop + 'px';
+            popup.style.width = popupWidth + 'px';
         }
         
         function closePopup() {
