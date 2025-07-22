@@ -510,23 +510,6 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
         .close-btn:hover {
             color: #ffffff;
         }
-        
-        /* Brain icon inside - FORCE TO SHOW */
-        .brain-icon {
-            position: absolute !important;
-            top: 50% !important;
-            left: 50% !important;
-            transform: translate(-50%, -50%) !important;
-            color: rgba(255, 255, 255, 0.9) !important;
-            font-size: 48px !important;
-            font-weight: 300 !important;
-            width: 50px !important;
-            height: 50px !important;
-            display: block !important;
-            visibility: visible !important;
-            background: rgba(255, 255, 255, 0.1) !important;
-            border-radius: 50% !important;
-        }
     </style>
 </head>
 <body>
@@ -537,9 +520,7 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
         <div id="subtitle">Investment Thesis Overview</div>
         
         <div id="brain-container">
-            <div id="brain">
-                <div class="brain-icon">&nbsp;</div>
-            </div>
+            <div id="brain"></div>
         </div>
     </div>
     
