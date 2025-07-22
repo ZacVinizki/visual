@@ -520,7 +520,9 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
         <div id="subtitle">Investment Thesis Overview</div>
         
         <div id="brain-container">
-            <div id="brain">🟣</div>
+            <div id="brain">
+                <div style="width: 50px; height: 50px; background: rgba(255,255,255,0.3); border-radius: 50%; margin: auto; margin-top: 75px;"></div>
+            </div>
         </div>
     </div>
     
