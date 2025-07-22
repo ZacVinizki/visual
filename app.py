@@ -516,8 +516,7 @@ def create_space_visualization_html(sections: list, company_name: str = "INVESTM
     <div class="bg-particles"></div>
     
     <div id="container">
-        <div id="main-title">COMPANY_NAME_PLACEHOLDER ANALYSIS</div>
-        <div id="subtitle">Investment Thesis Overview</div>
+        <div id="main-title">THESIS OVERVIEW</div>
         
         <div id="brain-container">
             <div id="brain" style="width: 200px; height: 200px; background: linear-gradient(135deg, #4f46e5, #7c3aed, #ec4899); border-radius: 50%; position: relative; animation: brainPulse 3s ease-in-out infinite; box-shadow: 0 0 40px rgba(79, 70, 229, 0.4), inset 0 0 30px rgba(255, 255, 255, 0.1);"></div>
